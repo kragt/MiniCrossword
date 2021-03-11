@@ -1,10 +1,5 @@
 namespace MiniCrossword
 
-/// This is the main module of your application
-/// here you handle all of your child pages as well as their
-/// messages and their updates, useful to update multiple parts
-/// of your application, Please refer to the `view` function
-/// to see how to handle different kinds of "*child*" controls
 module Shell =
     open Elmish
     open Avalonia
@@ -15,59 +10,83 @@ module Shell =
     open Avalonia.FuncUI.Builder
     open Avalonia.FuncUI.Components.Hosts
     open Avalonia.FuncUI.Elmish
+    open External
 
-    type State =
-        /// store the child state in your main state
-        { aboutState: About.State; counterState: Counter.State;}
+    type State = { 
+            AboutState: About.State
+            CrosswordState: Crossword.State
+            SettingsState: Settings.State
+            SavedSettings: Settings.State
+            //crossword
+        }
 
     type Msg =
         | AboutMsg of About.Msg
-        | CounterMsg of Counter.Msg
+        | CrosswordMsg of Crossword.Msg
+        | SettingsMsg of Settings.Msg
+        | SaveSettings of Settings.State
 
     let init =
         let aboutState, aboutCmd = About.init
-        let counterState = Counter.init
-        { aboutState = aboutState; counterState = counterState },
-        /// If your children controls don't emit any commands
-        /// in the init function, you can just return Cmd.none
-        /// otherwise, you can use a batch operation on all of them
-        /// you can add more init commands as you need
+        let crosswordState = Crossword.init
+        let settingsState = Settings.init
+        { AboutState = aboutState
+          CrosswordState = crosswordState
+          SettingsState = settingsState
+          SavedSettings = settingsState },
         Cmd.batch [ aboutCmd ]
+
+    let private handleExternal (state: Settings.State) (extMsg: ExternalMsg option) : Cmd<Msg> =
+        match extMsg with
+        | None -> Cmd.none
+        | Some msg -> 
+            match msg with
+            | ExternalMsg.NavigateToPage p -> Cmd.none
 
     let update (msg: Msg) (state: State): State * Cmd<_> =
         match msg with
         | AboutMsg bpmsg ->
             let aboutState, cmd =
-                About.update bpmsg state.aboutState
-            { state with aboutState = aboutState },
-            /// map the message to the kind of message 
-            /// your child control needs to handle
+                About.update bpmsg state.AboutState
+            { state with AboutState = aboutState },
             Cmd.map AboutMsg cmd
-        | CounterMsg countermsg ->
-            let counterMsg =
-                Counter.update countermsg state.counterState
-            { state with counterState = counterMsg },
-            /// map the message to the kind of message 
-            /// your child control needs to handle
+        | CrosswordMsg crosswordmsg ->
+            let crosswordMsg =
+                Crossword.update crosswordmsg state.CrosswordState
+            { state with CrosswordState = crosswordMsg },
             Cmd.none
+        | SettingsMsg settingsMgs ->
+            let settingsState, cmd, ext = Settings.update settingsMgs state.SettingsState
+            let handled = handleExternal settingsState ext
+            let mapped = Cmd.map SettingsMsg cmd
+            { state with SettingsState = settingsState }, Cmd.batch [ handled; mapped ]
+        | SaveSettings settingsState ->
+            // TODO move into settings module
+            { state with SavedSettings = settingsState }, Cmd.none
 
     let view (state: State) (dispatch) =
-        DockPanel.create
-            [ DockPanel.children
-                [ TabControl.create
-                    [ TabControl.tabStripPlacement Dock.Top
-                      TabControl.viewItems
-                          [ TabItem.create
-                                [ TabItem.header "Counter Sample"
-                                  TabItem.content (Counter.view state.counterState (CounterMsg >> dispatch)) ]
-                            TabItem.create
-                                [ TabItem.header "About"
-                                  TabItem.content (About.view state.aboutState (AboutMsg >> dispatch)) ] ] ] ] ]
+        DockPanel.create [ 
+            DockPanel.children [ 
+                TabControl.create [ 
+                    TabControl.tabStripPlacement Dock.Top
+                    TabControl.viewItems [
+                        TabItem.create [ 
+                            TabItem.header "Crossword Sample"
+                            TabItem.content (Crossword.view state.CrosswordState (CrosswordMsg >> dispatch))
+                        ]
+                        TabItem.create [ 
+                            TabItem.header "About"
+                            TabItem.content (About.view state.AboutState (AboutMsg >> dispatch))
+                        ]
+                        TabItem.create [
+                            TabItem.header "Settings"
+                            TabItem.content (Settings.view state.SettingsState (SettingsMsg >> dispatch))
+                        ]
+                    ]
+                ]
+            ]
+        ]
 
-    /// This is the main window of your application
-    /// you can do all sort of useful things here like setting heights and widths
-    /// as well as attaching your dev tools that can be super useful when developing with
-    /// Avalonia
     type MainWindow() as this =
         inherit HostWindow()
         do
@@ -82,4 +101,5 @@ module Shell =
 
             Elmish.Program.mkProgram (fun () -> init) update view
             |> Program.withHost this
+            |> Program.withConsoleTrace
             |> Program.run

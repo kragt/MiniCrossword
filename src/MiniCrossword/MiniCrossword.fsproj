@@ -6,7 +6,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Counter.fs" />
+        <Compile Include="External.fs" />
+        <Compile Include="Settings.fs" />
+        <Compile Include="Crossword.fs" />
         <Compile Include="About.fs" />
         <Compile Include="Shell.fs" />
         <Compile Include="Program.fs" />
