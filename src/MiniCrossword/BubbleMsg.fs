@@ -1,6 +1,6 @@
 ﻿namespace MiniCrossword
 
-module External =
+module BubbleMsg =
     
     type Page =
     | Crossword
@@ -9,9 +9,9 @@ module External =
 
     let getPageNo i =
         match i with
-        | Crossword -> 1
-        | Settings -> 2
-        | WordList -> 3
+        | Crossword -> 0
+        | Settings -> 1
+        | WordList -> 2
 
-    type ExternalMsg =
+    type BubbleMsg =
     | NavigateToPage of Page

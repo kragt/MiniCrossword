@@ -109,3 +109,6 @@ coverage.*.xml
 
 .fake
 .ionide
+
+# Misc
+*scratchpad.fsx

@@ -6,7 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="External.fs" />
+        <Compile Include="BubbleMsg.fs" />
         <Compile Include="Settings.fs" />
         <Compile Include="Crossword.fs" />
         <Compile Include="About.fs" />

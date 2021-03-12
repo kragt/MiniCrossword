@@ -10,13 +10,12 @@ module Shell =
     open Avalonia.FuncUI.Builder
     open Avalonia.FuncUI.Components.Hosts
     open Avalonia.FuncUI.Elmish
-    open External
+    open BubbleMsg
 
     type State = { 
             AboutState: About.State
             CrosswordState: Crossword.State
             SettingsState: Settings.State
-            SavedSettings: Settings.State
             //crossword
         }
 
@@ -24,7 +23,6 @@ module Shell =
         | AboutMsg of About.Msg
         | CrosswordMsg of Crossword.Msg
         | SettingsMsg of Settings.Msg
-        | SaveSettings of Settings.State
 
     let init =
         let aboutState, aboutCmd = About.init
@@ -32,16 +30,15 @@ module Shell =
         let settingsState = Settings.init
         { AboutState = aboutState
           CrosswordState = crosswordState
-          SettingsState = settingsState
-          SavedSettings = settingsState },
+          SettingsState = settingsState },
         Cmd.batch [ aboutCmd ]
 
-    let private handleExternal (state: Settings.State) (extMsg: ExternalMsg option) : Cmd<Msg> =
+    let private handleBubbleMsg (state: Settings.State) (extMsg: BubbleMsg option) : Cmd<Msg> =
         match extMsg with
         | None -> Cmd.none
         | Some msg -> 
             match msg with
-            | ExternalMsg.NavigateToPage p -> Cmd.none
+            | BubbleMsg.NavigateToPage p -> Cmd.none
 
     let update (msg: Msg) (state: State): State * Cmd<_> =
         match msg with
@@ -56,13 +53,10 @@ module Shell =
             { state with CrosswordState = crosswordMsg },
             Cmd.none
         | SettingsMsg settingsMgs ->
-            let settingsState, cmd, ext = Settings.update settingsMgs state.SettingsState
-            let handled = handleExternal settingsState ext
-            let mapped = Cmd.map SettingsMsg cmd
-            { state with SettingsState = settingsState }, Cmd.batch [ handled; mapped ]
-        | SaveSettings settingsState ->
-            // TODO move into settings module
-            { state with SavedSettings = settingsState }, Cmd.none
+            let settingsState, cmd, bubble = Settings.update settingsMgs state.SettingsState
+            let bubbled = handleBubbleMsg settingsState bubble
+            let chained = Cmd.map SettingsMsg cmd
+            { state with SettingsState = settingsState }, Cmd.batch [ bubbled; chained ]
 
     let view (state: State) (dispatch) =
         DockPanel.create [ 
